@@ -1,0 +1,21 @@
+class CFG:
+    apex=False
+    debug=False
+    print_freq=100
+    num_workers=16
+    model_name='tf_efficientnet_b4_ns'
+    scheduler='CosineAnnealingLR'
+    epochs=7
+    T_max=12 # CosineAnnealingLR
+    lr=1e-3
+    min_lr=1e-6
+    batch_size=32
+    weight_decay=1e-6
+    gradient_accumulation_steps=1
+    max_grad_norm=1000
+    seed=42
+    target_size=1
+    target_col='target'
+    n_fold=1
+    trn_fold=[0]
+    nb_train_sample=True
