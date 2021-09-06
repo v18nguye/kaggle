@@ -4,7 +4,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 import pandas as pd
-from sklearn.model_selection import StratifiedKFold, GroupKFold, KFold
+from sklearn.model_selection import StratifiedKFold
 
 import torch
 import torch.nn as nn
@@ -53,21 +53,10 @@ def get_test_file_path(image_id):
 
 train['file_path'] = train['id'].apply(get_train_file_path)
 test['file_path'] = test['id'].apply(get_test_file_path)
-
-train_detected_waves = train[train['target'] == 1].reset_index(drop=True)
-train_none_waves = train[train['target'] == 0].reset_index(drop=True)
-train_part = pd.concat([train_detected_waves, train_none_waves]).reset_index(drop=True)
-print(len(train_detected_waves), len(train_none_waves), len(train_part))
-
 ## Cross validation
-
-Fold = StratifiedKFold(n_splits=10, shuffle=True, random_state=cfg.seed)
-for n, (train_index, val_index) in enumerate(Fold.split(train_part, train_part[cfg.target_col])):
-    train_part.loc[val_index, 'fold2'] = int(n)
-    
-train_part['fold'] = [0]*len(train_part)
-display(train_part.groupby(['fold', 'target']).size())
-display(train_part.groupby(['fold2', 'target']).size())
+Fold = StratifiedKFold(n_splits=5, shuffle=True, random_state=cfg.seed)
+for n, (train_index, val_index) in enumerate(Fold.split(train, train[cfg.target_col])):
+    train.loc[val_index, 'fold'] = int(n)
 
 ##############################################
 #   TRAIN LOOPS
@@ -80,7 +69,7 @@ def train_loop(folds, fold, cfg):
     # loader
     # ====================================================
     trn_idx = folds[folds['fold'] == fold].index
-    val_idx = folds[folds['fold2'] == 1].index
+    val_idx = folds[folds['fold'] != fold].index
 
     train_folds = folds.loc[trn_idx].reset_index(drop=True)
     valid_folds = folds.loc[val_idx].reset_index(drop=True)
@@ -171,12 +160,12 @@ def main():
         score = get_score(labels, preds)
         LOGGER.info(f'Score: {score:<.4f}')
     
-    if CFG.train:
+    if cfg.train:
         # train 
         oof_df = pd.DataFrame()
         for fold in range(cfg.n_fold):
             if fold in cfg.trn_fold:
-                _oof_df = train_loop(train_part, fold)
+                _oof_df = train_loop(train, fold, cfg)
                 oof_df = pd.concat([oof_df, _oof_df])
                 LOGGER.info(f"========== fold: {fold} result ==========")
                 get_result(_oof_df)

@@ -5,6 +5,7 @@ class CFG:
     num_workers=16
     model_name='tf_efficientnet_b4_ns'
     scheduler='CosineAnnealingLR'
+    net_type = 'cwt'
     epochs=7
     T_max=12 # CosineAnnealingLR
     lr=1e-3
@@ -16,6 +17,6 @@ class CFG:
     seed=42
     target_size=1
     target_col='target'
-    n_fold=1
-    trn_fold=[0]
+    n_fold=5
+    trn_fold=[0,1,2,3,4]
     nb_train_sample=True

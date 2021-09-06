@@ -2,6 +2,9 @@ import numpy as np
 from torchvision import transforms 
 from gwpy import timeseries as tser
 from torch.utils.data import Dataset
+import scipy as sp
+from scipy import signal
+from scipy import optimize
 
 def pre_proces(data, cut_off_t=0.05, timming = False):
     """Apply whitening process
@@ -61,3 +64,27 @@ class GwaveDataset(Dataset):
             prp_data = prp_data.type(torch.float32).squeeze()
         label = torch.tensor(self.labels[idx]).float()
         return prp_data, label
+
+
+class GwaveDataset_v2(Dataset):
+    def __init__(self, df):
+        self.df = df
+        self.file_names = df['file_path'].values
+        self.labels = df[CFG.target_col].values
+        
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        file_path = self.file_names[idx]
+        data = np.load(file_path)
+        data = data/np.max(data)
+        data = self.apply_bandpass(data, 20, 512)
+        data = torch.tensor(data, dtype=torch.float32).view(3, 4096)
+        label = torch.tensor(self.labels[idx]).float()
+        return data, label
+    
+    def apply_bandpass(self, x, lf=20, hf=512, order=4, sr=2048):
+        sos = signal.butter(order, [lf, hf], btype="bandpass", output="sos", fs=sr)
+        normalization = np.sqrt((hf - lf) / (sr / 2))
+        return signal.sosfiltfilt(sos, x) / normalization
